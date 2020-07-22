@@ -1,0 +1,15 @@
+*virtualenv*
+*tmp*
+*.OLD*
+*.pyc
+*~
+*dump*
+*.log
+logs/
+*.report
+__pycache__
+db.sqlite3
+.idea
+django/drf_veiculos_app/src/.coverage
+django/drf_veiculos_app/src/htmlcov
+.ropeproject/
