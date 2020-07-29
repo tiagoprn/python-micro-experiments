@@ -4,8 +4,8 @@
 Context managers can be used when you want to avoid repetitive code,
 that should do the same thing from times to times.
 """
-
 import logging
+import os
 import tracemalloc
 from contextlib import ContextDecorator, contextmanager
 from datetime import datetime
@@ -32,12 +32,16 @@ class SimpleProfiler(ContextDecorator):
     https://medium.com/survata-engineering-blog/monitoring-memory-usage-of-a-running-python-program-49f027e3d1ba
     """
 
-    def __init__(self, path: str = '/tmp/profiler.log'):
+    def __init__(self, path: str = '/tmp/profiler.csv'):
         self.path = path
         self.current = 0
         self.peak = 0
-        with open(self.path, 'w') as output_file:
-            output_file.write(f'current_memory (MB), peak (MB)')
+        if not os.path.exists(self.path):
+            with open(self.path, 'a') as output_file:
+                output_file.write(
+                    f'timestamp, file, function, current_memory_in_mb, '
+                    f'peak_memory_in_mb\n'
+                )
 
     def __enter__(self, *args):
         tracemalloc.start()
@@ -46,7 +50,13 @@ class SimpleProfiler(ContextDecorator):
     def snapshot(self):
         self.current, self.peak = tracemalloc.get_traced_memory()
         with open(self.path, 'a') as output_file:
-            output_file.write(f'{self.current / 10**6}, {self.peak / 10**6}\n')
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+            filename = os.path.basename(__file__)
+            measured = (
+                f'{timestamp}, {filename}, {__name__},  '
+                f'{self.current / 10**6}, {self.peak / 10**6}\n'
+            )
+            output_file.write(measured)
             tracemalloc.stop()
 
     def __exit__(self, *args):
@@ -84,6 +94,17 @@ class SuccessfulCounter(ContextDecorator):
         print(f'ERROR count = {self.error}, SUCCESS count = {self.success}')
 
 
+def test_profiler():
+    with SimpleProfiler():
+        print('Doing #1')
+
+    with SimpleProfiler():
+        print('Doing #2')
+
+    with SimpleProfiler():
+        print('Doing #3')
+
+
 @timing('do some work')  # here I use the context manager as a decorator
 def do_work():
     with timing(
@@ -109,5 +130,5 @@ def do_work():
 
 
 do_work()
-
+test_profiler()
 print('Successfully finished.')
