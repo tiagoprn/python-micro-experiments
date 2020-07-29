@@ -5,11 +5,12 @@ Context managers can be used when you want to avoid repetitive code,
 that should do the same thing from times to times.
 """
 
-from time import sleep
 import logging
-
-from contextlib import contextmanager, ContextDecorator
+import tracemalloc
+from contextlib import ContextDecorator, contextmanager
 from datetime import datetime
+from time import sleep
+
 
 @contextmanager
 def timing(description: str) -> None:
@@ -18,16 +19,44 @@ def timing(description: str) -> None:
     elapsed_seconds = (datetime.now() - start).seconds
     hours, remainder = divmod(elapsed_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-    elapsed_time= '{:02}h:{:02}m:{:02}s'.format(
-        int(hours), int(minutes), int(seconds))
-    print(f"[timing report] '{description}' "
-          f"took {elapsed_time}")
+    elapsed_time = '{:02}h:{:02}m:{:02}s'.format(
+        int(hours), int(minutes), int(seconds)
+    )
+    print(f"[timing report] '{description}' " f"took {elapsed_time}")
+
+
+class SimpleProfiler(ContextDecorator):
+    """
+    A simple profiler to track memory usage. Based on work from:
+
+    https://medium.com/survata-engineering-blog/monitoring-memory-usage-of-a-running-python-program-49f027e3d1ba
+    """
+
+    def __init__(self, path: str = '/tmp/profiler.log'):
+        self.path = path
+        self.current = 0
+        self.peak = 0
+        with open(self.path, 'w') as output_file:
+            output_file.write(f'current_memory (MB), peak (MB)')
+
+    def __enter__(self, *args):
+        tracemalloc.start()
+        self.snapshot()
+
+    def snapshot(self):
+        self.current, self.peak = tracemalloc.get_traced_memory()
+        with open(self.path, 'a') as output_file:
+            output_file.write(f'{self.current / 10**6}, {self.peak / 10**6}\n')
+            tracemalloc.stop()
+
+    def __exit__(self, *args):
+        self.snapshot()
 
 
 class SuccessfulCounter(ContextDecorator):
     def __init__(self, description):
         self.description = description
-        self.error= 0
+        self.error = 0
         self.success = 0
         self.start = None
         self.successful = None
@@ -40,10 +69,10 @@ class SuccessfulCounter(ContextDecorator):
         elapsed_seconds = (datetime.now() - self.start).seconds
         hours, remainder = divmod(elapsed_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
-        elapsed_time= '{:02}h:{:02}m:{:02}s'.format(
-            int(hours), int(minutes), int(seconds))
-        print(f"[timing report] '{self.description}' "
-            f"took {elapsed_time}")
+        elapsed_time = '{:02}h:{:02}m:{:02}s'.format(
+            int(hours), int(minutes), int(seconds)
+        )
+        print(f"[timing report] '{self.description}' " f"took {elapsed_time}")
 
         if type:  # That means an exception was raised
             self.error += 1
@@ -57,10 +86,14 @@ class SuccessfulCounter(ContextDecorator):
 
 @timing('do some work')  # here I use the context manager as a decorator
 def do_work():
-    with timing('Sleep for 1 second'):  # here I use the context manager with the with clause
+    with timing(
+        'Sleep for 1 second'
+    ):  # here I use the context manager with the with clause
         sleep(1)
 
-    with timing('Print characters on your screen.'):  # still using the with clause
+    with timing(
+        'Print characters on your screen.'
+    ):  # still using the with clause
         print('-' * 1000)
 
     print('-' * 80)
@@ -68,9 +101,12 @@ def do_work():
     with SuccessfulCounter('Divide a value for 2') as counter:
         result = 4 / 2
         print(f'4/2 = {result}')
-    print(f'Counter status: errors={counter.error}, '
-          f'successes={counter.success}')
+    print(
+        f'Counter status: errors={counter.error}, '
+        f'successes={counter.success}'
+    )
     print('-' * 80)
+
 
 do_work()
 
