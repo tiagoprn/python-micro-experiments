@@ -21,3 +21,11 @@ class ICalc(ABC):
     @abstractmethod
     def div(self, a, b):
         pass
+
+    def method_c(self):
+        '''
+        This method can have a real implementation on this class,
+        since it is not decorated with "abstractmethod".
+        '''
+        # implement something
+        pass
