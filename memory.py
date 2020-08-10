@@ -15,6 +15,11 @@ def deep_getsizeof(o: object, ids: None = None) -> int:
     object inside a container as pointer only regardless of how big it
     really is.
 
+    To manually call the garbage collector, you can use:
+
+    import gc
+    gc.collect()
+
     Params
     ------
      o: object
