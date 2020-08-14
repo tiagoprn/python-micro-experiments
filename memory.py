@@ -1,6 +1,8 @@
 # extracted from here: https://rednafi.github.io/digressions/python/2020/07/03/python-mixins.html
 
-from collections.abc import Mapping, Container
+import logging
+import resource
+from collections.abc import Container, Mapping
 from sys import getsizeof
 
 
@@ -53,3 +55,23 @@ def deep_getsizeof(o: object, ids: None = None) -> int:
         return r + sum(d(x, ids) for x in o)
 
     return r
+
+
+def get_current_peak_memory_usage_in_mb() -> int:
+    """
+    Returns peak memory usage in MB.
+
+    Can be called at any point of the execution, the
+    function trace_memory_usage below can be used to
+    avoid always using the same string on debugging
+    the value.
+    """
+    peak_memory_in_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak_memory_in_kb / 1024
+
+
+def trace_memory_usage():
+    logging.info(
+        f'***** Current memory consumption = '
+        f'{get_current_peak_memory_usage_in_mb()} MB'
+    )
