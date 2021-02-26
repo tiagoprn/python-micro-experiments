@@ -1,6 +1,6 @@
 requests==2.22.0
 beautifulsoup4==4.8.1
 ipdb==0.12.2
-aiohttp==3.6.2
+aiohttp==3.7.4
 aiofiles==0.4.0
 uvloop==0.14.0
